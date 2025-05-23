@@ -112,7 +112,7 @@ TEE_Result take_measurement(uint8_t vm_index, char* pattern, size_t pattern_size
 
     res = TEE_InvokeTACommand(
         sess, 0,
-        PTA_MEMREAD_CMD_ATTEST_MEMORY
+        PTA_MEMREAD_CMD_ATTEST_MEMORY,
         param_types, pta_params,
         &ret_origin
     );
@@ -177,6 +177,7 @@ TEE_Result request_attestation_for_queue(void) {
     queue ctx;
 
     bool has_result = false;
+    char response[16];
     while (!has_result) {
         res = TEE_Wait(5000);
         if (res != TEE_SUCCESS)
@@ -188,8 +189,6 @@ TEE_Result request_attestation_for_queue(void) {
 
         if (res != TEE_SUCCESS)
             continue;
-
-        char response[16];
 
         res = execute_command(
             command, strlen(command),
