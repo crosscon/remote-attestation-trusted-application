@@ -12,7 +12,9 @@ In general, only three options must be configured:
 
 ## Build & Installation
 
-Building this TA works similar to building other TAs for OPTEE-OS on CROSSCON and depends on the exact build system used. [These instructions (step 6)](https://github.com/crosscon/CROSSCON-Hypervisor-and-TEE-Isolation-Demos/) can generally be used as guidance.
+Building this TA works similar to building other TAs for OPTEE-OS on CROSSCON and depends on the exact build system used. [These instructions](https://github.com/crosscon/CROSSCON-Hypervisor-and-TEE-Isolation-Demos/) can generally be used as guidance for getting a running system (in particular, step 6 shows how to compile a TA).
+Instead of the default CROSSCON-modified version of OP-TEE OS, [this GitHub repo](https://github.com/crosscon/remote-attestation-optee-os/tree/separate-config) must be used as a basis, since attesting another VM requires an extension to the OP-TEE OS core.
+This modification requires no modifications for the way OP-TEE OS is built.
 
 After compilation, the signed TA application `.ta` file must be stored on the Linux file system which invokes the TA execution at `/usr/lib/optee_armtz`. This again depends on the build system used. In the CROSSCON demo repository (which uses buildroot), the developers move the TA and the host application using overlays (see there for further details).
 
