@@ -12,6 +12,7 @@ TEE_Result enroll_certificate(
 
 TEE_Result take_measurement(
     uint8_t vm_index,
+    uint32_t block_index,
     char* pattern,
     size_t pattern_size,
     size_t memory_region_size,
@@ -21,6 +22,7 @@ TEE_Result take_measurement(
 
 TEE_Result request_attestation(
     uint8_t vm_index,
+    uint32_t block_index,
     char* pattern,
     size_t pattern_size,
     size_t memory_region_size

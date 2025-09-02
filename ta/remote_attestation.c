@@ -82,7 +82,7 @@ TEE_Result enroll_certificate(void) {
 }
 
 
-TEE_Result take_measurement(uint8_t vm_index, char* pattern, size_t pattern_size, size_t memory_region_size, char* output_buffer_64bytes) {
+TEE_Result take_measurement(uint8_t vm_index, uint32_t block_index, char* pattern, size_t pattern_size, size_t memory_region_size, char* output_buffer_64bytes) {
     TEE_UUID uuid = PTA_MEMREAD_UUID;
     TEE_TASessionHandle sess;
     uint32_t ret_origin;
@@ -97,6 +97,7 @@ TEE_Result take_measurement(uint8_t vm_index, char* pattern, size_t pattern_size
     TEE_MemFill(output_buffer_64bytes, 0, 64);
 
     pta_params[0].value.a = vm_index;
+    pta_params[0].value.b = block_index;
     pta_params[1].memref.buffer = pattern;
     pta_params[1].memref.size = pattern_size;
     pta_params[2].value.a = memory_region_size;
@@ -123,7 +124,7 @@ TEE_Result take_measurement(uint8_t vm_index, char* pattern, size_t pattern_size
 }
 
 
-TEE_Result request_attestation(uint8_t vm_index, char* pattern, size_t pattern_size, size_t memory_region_size) {
+TEE_Result request_attestation(uint8_t vm_index, uint32_t block_index, char* pattern, size_t pattern_size, size_t memory_region_size) {
     TEE_Result res;
     int ret;
     char measurement[64];
@@ -131,7 +132,7 @@ TEE_Result request_attestation(uint8_t vm_index, char* pattern, size_t pattern_s
     char command[256];
     char response[16];
 
-    res = take_measurement(vm_index, pattern, pattern_size, memory_region_size, measurement);
+    res = take_measurement(vm_index, block_index, pattern, pattern_size, memory_region_size, measurement);
     if (res != TEE_SUCCESS)
         return res;
 
@@ -302,6 +303,7 @@ TEE_Result command_request_attestation(uint32_t param_types, TEE_Param params[4]
 
     return request_attestation(
         (uint8_t) params[0].value.a,
+        (uint32_t) params[0].value.b,
         params[1].memref.buffer,
         (size_t) params[1].memref.size,
         (size_t) params[2].value.a

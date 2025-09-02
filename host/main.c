@@ -89,8 +89,7 @@ void test_remote() {
 }
 
 
-
-void test_request_attestation() {
+TEE_Result tee_request_attestation_for_block(uint32_t block_index) {
     TEEC_Result res;
     TEEC_Context ctx;
     TEEC_Session sess;
@@ -117,6 +116,7 @@ void test_request_attestation() {
     uint8_t mem_region_size = 3;
 
     op.params[0].value.a = vm_index;
+    op.params[0].value.b = block_index;
     op.params[1].tmpref.buffer = pattern;
     op.params[1].tmpref.size = sizeof(pattern);
     op.params[2].value.a = mem_region_size;
@@ -129,15 +129,29 @@ void test_request_attestation() {
     );
 
     res = TEEC_InvokeCommand(&sess, TA_REMOTE_ATTESTATION_CMD_REQUEST_ATTESTATION, &op, &err_origin);
-    if (res != TEEC_SUCCESS) {
-        printf("TEEC_InvokeCommand failed with code 0x%x, origin 0x%x", res, err_origin);
+
+    TEEC_CloseSession(&sess);
+    TEEC_FinalizeContext(&ctx);
+
+    return res;
+}
+
+void test_request_attestation() {
+    TEE_Result res;
+    uint32_t block_index;
+
+    res = TEE_ERROR_BUSY;
+    block_index = 0;
+    while (res == TEE_ERROR_BUSY) {
+        res = tee_request_attestation_for_block(block_index);
+    }
+
+    if (res != TEE_SUCCESS) {
+        printf("TEEC_InvokeCommand failed with code 0x%x", res);
         return;
     }
 
     printf("TA result: Ok.\n");
-
-    TEEC_CloseSession(&sess);
-    TEEC_FinalizeContext(&ctx);
 }
 
 
