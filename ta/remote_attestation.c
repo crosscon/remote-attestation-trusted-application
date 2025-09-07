@@ -88,6 +88,8 @@ TEE_Result take_measurement(uint8_t vm_index, uint32_t block_index, char* patter
     uint32_t ret_origin;
     TEE_Result res;
 
+    IMSG("[remote_attestation] Working on block %u...\n", block_index);
+
     res = TEE_OpenTASession(&uuid, 0, 0, NULL, &sess, &ret_origin);
     if (res != TEE_SUCCESS)
         return res;
@@ -119,6 +121,8 @@ TEE_Result take_measurement(uint8_t vm_index, uint32_t block_index, char* patter
     );
 
     TEE_CloseTASession(sess);
+
+    IMSG("[remote_attestation] Return value: %lx (%lu)\n", res, ret_origin);
 
     return res;
 }

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include <tee_client_api.h>
 
@@ -89,7 +90,9 @@ void test_remote() {
 }
 
 
-TEE_Result tee_request_attestation_for_block(uint32_t block_index) {
+TEEC_Result tee_request_attestation_for_block(uint32_t block_index) {
+    printf("Requesting attestation for block %u\n", block_index);
+
     TEEC_Result res;
     TEEC_Context ctx;
     TEEC_Session sess;
@@ -100,23 +103,24 @@ TEE_Result tee_request_attestation_for_block(uint32_t block_index) {
     res = TEEC_InitializeContext(NULL, &ctx);
     if (res != TEEC_SUCCESS) {
         printf("Error initializing Context: %u\n", res);
-        return;
+        return res;
     }
 
     res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
     if (res != TEEC_SUCCESS) {
         printf("Error opening Session: %u\n", res);
-        return;
+        return res;
     }
 
     memset(&op, 0, sizeof(op));
 
     uint8_t vm_index = 0;
     char pattern[] = { 0x01, 0x02, 0x03 };
-    uint8_t mem_region_size = 3;
+    uint8_t mem_region_size = 8;
 
     op.params[0].value.a = vm_index;
     op.params[0].value.b = block_index;
+
     op.params[1].tmpref.buffer = pattern;
     op.params[1].tmpref.size = sizeof(pattern);
     op.params[2].value.a = mem_region_size;
@@ -129,6 +133,7 @@ TEE_Result tee_request_attestation_for_block(uint32_t block_index) {
     );
 
     res = TEEC_InvokeCommand(&sess, TA_REMOTE_ATTESTATION_CMD_REQUEST_ATTESTATION, &op, &err_origin);
+    printf("[remote_attestation] Return code: %lx\n", res);
 
     TEEC_CloseSession(&sess);
     TEEC_FinalizeContext(&ctx);
@@ -137,16 +142,19 @@ TEE_Result tee_request_attestation_for_block(uint32_t block_index) {
 }
 
 void test_request_attestation() {
-    TEE_Result res;
+    TEEC_Result res;
     uint32_t block_index;
 
-    res = TEE_ERROR_BUSY;
+    res = TEEC_ERROR_BUSY;
     block_index = 0;
-    while (res == TEE_ERROR_BUSY) {
-        res = tee_request_attestation_for_block(block_index);
+    while (res == TEEC_ERROR_BUSY) {
+        res = tee_request_attestation_for_block(block_index++);
+        printf("Pause...\n");
+        usleep(1000 * 1000); // might be required on some machines to let some interrupts through
+        printf("Continue...\n");
     }
 
-    if (res != TEE_SUCCESS) {
+    if (res != TEEC_SUCCESS) {
         printf("TEEC_InvokeCommand failed with code 0x%x", res);
         return;
     }
