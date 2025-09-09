@@ -132,7 +132,7 @@ TEEC_Result ta_request_attestation_for_block(uint8_t vm_index, char* pattern, si
     op.params[0].value.b = block_index;
 
     op.params[1].tmpref.buffer = pattern;
-    op.params[1].tmpref.size = sizeof(pattern);
+    op.params[1].tmpref.size = pattern_size;
     op.params[2].value.a = mem_region_size;
 
     op.paramTypes = TEEC_PARAM_TYPES(
