@@ -9,7 +9,7 @@
 #include <remote_attestation.h>
 
 
-void test_get_id() {
+TEEC_Result ta_get_device_id() {
     TEEC_Result res;
     TEEC_Context ctx;
     TEEC_Session sess;
@@ -20,13 +20,13 @@ void test_get_id() {
     res = TEEC_InitializeContext(NULL, &ctx);
 	if (res != TEEC_SUCCESS) {
 		printf("TEEC_InitializeContext failed with code 0x%x", res);
-        return;
+        return res;
     }
 
 	res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
 	if (res != TEEC_SUCCESS) {
         printf("TEEC_Opensession failed with code 0x%x origin 0x%x", res, err_origin);
-        return;
+        return res;
     }
 
 	memset(&op, 0, sizeof(op));
@@ -41,7 +41,7 @@ void test_get_id() {
     res = TEEC_InvokeCommand(&sess, TA_REMOTE_ATTESTATION_CMD_GET_DEVICE_ID, &op, &err_origin);
     if (res != TEEC_SUCCESS) {
         printf("TEEC_InvokeCommand failed with code 0x%x, origin 0x%x", res, err_origin);
-        return;
+        return res;
     }
 
     printf(
@@ -51,11 +51,18 @@ void test_get_id() {
 
     TEEC_CloseSession(&sess);
     TEEC_FinalizeContext(&ctx);
+
+    return TEEC_SUCCESS;
+}
+
+void test_get_id() {
+    TEEC_Result res;
+    res = ta_get_device_id();
 }
 
 
 
-void test_remote() {
+TEEC_Result ta_test_remote() {
     TEEC_Result res;
     TEEC_Context ctx;
     TEEC_Session sess;
@@ -65,7 +72,7 @@ void test_remote() {
 
     if (TEEC_InitializeContext(NULL, &ctx) != TEEC_SUCCESS || TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin) != TEEC_SUCCESS) {
         printf("Error setting up invokation.");
-        return;
+        return res;
     }
 
     memset(&op, 0, sizeof(op));
@@ -80,17 +87,24 @@ void test_remote() {
     res = TEEC_InvokeCommand(&sess, TA_REMOTE_ATTESTATION_CMD_TEST_REMOTE, &op, &err_origin);
     if (res != TEEC_SUCCESS) {
         printf("TEEC_InvokeCommand failed with code 0x%x, origin 0x%x", res, err_origin);
-        return;
+        return res;
     }
 
     printf("TA result: Ok.\n");
 
     TEEC_CloseSession(&sess);
     TEEC_FinalizeContext(&ctx);
+
+    return TEEC_SUCCESS;
+}
+
+void test_remote() {
+    TEEC_Result res;
+    res = ta_test_remote();
 }
 
 
-TEEC_Result tee_request_attestation_for_block(uint32_t block_index) {
+TEEC_Result ta_request_attestation_for_block(uint8_t vm_index, char* pattern, size_t pattern_size, size_t mem_region_size, size_t block_index) {
     printf("Requesting attestation for block %u\n", block_index);
 
     TEEC_Result res;
@@ -113,10 +127,6 @@ TEEC_Result tee_request_attestation_for_block(uint32_t block_index) {
     }
 
     memset(&op, 0, sizeof(op));
-
-    uint8_t vm_index = 0;
-    char pattern[] = { 0x01, 0x02, 0x03 };
-    uint8_t mem_region_size = 8;
 
     op.params[0].value.a = vm_index;
     op.params[0].value.b = block_index;
@@ -141,29 +151,42 @@ TEEC_Result tee_request_attestation_for_block(uint32_t block_index) {
     return res;
 }
 
-void test_request_attestation() {
+TEEC_Result ta_request_attestation(uint8_t vm_index, char* pattern, size_t pattern_size, size_t mem_region_size) {
     TEEC_Result res;
     uint32_t block_index;
 
     res = TEEC_ERROR_BUSY;
     block_index = 0;
     while (res == TEEC_ERROR_BUSY) {
-        res = tee_request_attestation_for_block(block_index++);
-        printf("Pause...\n");
-        usleep(1000 * 1000); // might be required on some machines to let some interrupts through
+        res = ta_request_attestation_for_block(vm_index, pattern, pattern_size, mem_region_size, block_index++);
+        printf("Pause for interrupts...\n");
+        usleep(500 * 1000); // might be required on some machines to let some interrupts through
         printf("Continue...\n");
     }
 
     if (res != TEEC_SUCCESS) {
         printf("TEEC_InvokeCommand failed with code 0x%x", res);
-        return;
+        return res;
     }
 
     printf("TA result: Ok.\n");
+
+    return TEEC_SUCCESS;
+}
+
+void test_request_attestation() {
+    TEEC_Result res;
+
+    uint8_t vm_index = 0;
+    char pattern[] = { 0x01, 0x02, 0x03 };
+    uint8_t mem_region_size = 8;
+
+    res = ta_request_attestation(vm_index, pattern, sizeof(pattern), mem_region_size);
 }
 
 
-void test_request_attestation_from_queue() {
+
+TEEC_Result ta_request_attestation_from_queue() {
     TEEC_Result res;
     TEEC_Context ctx;
     TEEC_Session sess;
@@ -174,13 +197,13 @@ void test_request_attestation_from_queue() {
     res = TEEC_InitializeContext(NULL, &ctx);
     if (res != TEEC_SUCCESS) {
         printf("Error initializing Context: %u\n", res);
-        return;
+        return res;
     }
 
     res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
     if (res != TEEC_SUCCESS) {
         printf("Error opening Session: %u\n", res);
-        return;
+        return res;
     }
 
     memset(&op, 0, sizeof(op));
@@ -195,18 +218,25 @@ void test_request_attestation_from_queue() {
     res = TEEC_InvokeCommand(&sess, TA_REMOTE_ATTESTATION_CMD_REQUEST_ATTESTATION_FROM_QUEUE, &op, &err_origin);
     if (res != TEEC_SUCCESS) {
         printf("TEEC_InvokeCommand failed with code 0x%x, origin 0x%x", res, err_origin);
-        return;
+        return res;
     }
 
     printf("TA result: Ok.\n");
 
     TEEC_CloseSession(&sess);
     TEEC_FinalizeContext(&ctx);
+
+    return TEEC_SUCCESS;
+}
+
+void test_request_attestation_from_queue() {
+    TEEC_Result res;
+    res = ta_request_attestation_from_queue();
 }
 
 
 
-void test_enroll() {
+TEEC_Result ta_enroll_cert() {
     TEEC_Result res;
     TEEC_Context ctx;
     TEEC_Session sess;
@@ -217,13 +247,13 @@ void test_enroll() {
     res = TEEC_InitializeContext(NULL, &ctx);
     if (res != TEEC_SUCCESS) {
         printf("Error initializing Context: %u\n", res);
-        return;
+        return res;
     }
 
     res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL, NULL, &err_origin);
     if (res != TEEC_SUCCESS) {
         printf("Error opening Session: %u\n", res);
-        return;
+        return res;
     }
 
     memset(&op, 0, sizeof(op));
@@ -238,13 +268,20 @@ void test_enroll() {
     res = TEEC_InvokeCommand(&sess, TA_REMOTE_ATTESTATION_CMD_ENROLL_CERT, &op, &err_origin);
     if (res != TEEC_SUCCESS) {
         printf("TEEC_InvokeCommand failed with code 0x%x, origin 0x%x", res, err_origin);
-        return;
+        return res;
     }
 
     printf("TA result: Ok.\n");
 
     TEEC_CloseSession(&sess);
     TEEC_FinalizeContext(&ctx);
+
+    return TEEC_SUCCESS;
+}
+
+void test_enroll() {
+    TEEC_Result res;
+    res = ta_enroll_cert();
 }
 
 
