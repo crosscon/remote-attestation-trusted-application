@@ -40,7 +40,7 @@ TEE_Result save_private_key_to_storage(mbedtls_pk_context* key) {
     TEE_MemFill(pem_buffer, 0, sizeof(pem_buffer));
 
     if (mbedtls_pk_write_key_pem(key, (unsigned char*) pem_buffer, sizeof(pem_buffer)) != 0)
-        return TEE_ERROR_SECURITY;
+        return TEE_ERROR_SHORT_BUFFER;
 
     return write_object(STORAGE_ID_PRIVATE_KEY, strlen(STORAGE_ID_PRIVATE_KEY), pem_buffer, strlen(pem_buffer) + 1);
 }
@@ -91,7 +91,7 @@ TEE_Result get_subject_name(char* buffer, size_t buffer_length) {
 
     TEE_Result res = get_id(id);
     if (res != TEE_SUCCESS)
-        return TEE_ERROR_BAD_FORMAT;
+        return TEE_ERROR_GENERIC;
 
     size_t olen;
     int ret = mbedtls_base64_encode((unsigned char*) id_encoded, 10, &olen, (unsigned char*) id, 4);

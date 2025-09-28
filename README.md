@@ -26,14 +26,14 @@ An example host application for how to call the TA can be found in the `host` di
 The following commands are available:
 
 ### GET_DEVICE_ID
-- description: 
+- description: Retrieves the device ID used for enrolling with the remote
 - params:
     - VALUE_OUTPUT (where retrieved ID will be returned)
     - NONE/NONE/NONE
 - return value: TEE_SUCCESS on ID retrieval (ID found in first parameter)
 
 ### ENROLL_CERT
-- description: 
+- description: Enrolls a client certificate signed by the remote server; required for attestation
 - params: NONE/NONE/NONE/NONE
 - return value: TEE_SUCCESS on successful enrollment, TEE_ERROR_EXTERNAL_CANCEL on server abort (e.g. already enrolled)
 
@@ -44,14 +44,14 @@ The following commands are available:
     - MEMREF_INPUT (memory pattern from where the attestation will start)
     - VALUE_INPUT (size of the memory region to be attested)
     - NONE
-- return value:
+- return value: TEE_SUCCESS on successful attestation, TEE_ERROR_EXTERNAL_CANCEL on failed attestation, TEE_ERROR_COMMUNICATION on communication errors
 
 ### REQUEST_ATTESTATION_FROM_QUEUE
 - description: Long-running task which waits for a job to appear in the queue and a successful attestation attempt to be made (i.e. the server to be reachable)
 - params: NONE/NONE/NONE/NONE
-- return value: TEE_SUCCESS on successful attestation, TEE_ERROR_EXTERNAL_CANCEL on failed attestation
+- return value: TEE_SUCCESS on successful attestation, TEE_ERROR_EXTERNAL_CANCEL on failed attestation, TEE_ERROR_COMMUNICATION on communication errors
 
 ### TEST_REMOTE
 - description: Used to test secure mTLS connection to the remote side
 - params: NONE/NONE/NONE/NONE
-- return value: TEE_SUCCESS on successful connection
+- return value: TEE_SUCCESS on successful connection, TEE_ERROR_COMMUNICATION on communication errors

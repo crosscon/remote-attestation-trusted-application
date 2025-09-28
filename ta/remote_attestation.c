@@ -131,8 +131,11 @@ TEE_Result take_measurement(uint8_t vm_index, uint32_t block_index, char* patter
 TEE_Result request_attestation(uint8_t vm_index, uint32_t block_index, char* pattern, size_t pattern_size, size_t memory_region_size) {
     TEE_Result res;
     int ret;
+    size_t olen;
     char measurement[64];
     char encoded_measurement[128];
+    char nonce[32];
+    char encoded_nonce[64];
     char command[256];
     char response[16];
 
@@ -141,18 +144,25 @@ TEE_Result request_attestation(uint8_t vm_index, uint32_t block_index, char* pat
         return res;
 
     TEE_MemFill(command, 0, sizeof(command));
-
-    size_t olen;
-    ret = mbedtls_base64_encode((unsigned char*) encoded_measurement, sizeof(encoded_measurement), &olen, (const unsigned char*) measurement, sizeof(measurement));
-    if (ret != 0)
-        return ret;
+    TEE_GenerateRandom(nonce, sizeof(nonce));
 
     strncat(command, "ATTEST\n", 7);
+
+    ret = mbedtls_base64_encode((unsigned char*) encoded_measurement, sizeof(encoded_measurement), &olen, (const unsigned char*) measurement, sizeof(measurement));
+    if (ret != 0)
+        return TEE_ERROR_SHORT_BUFFER;
+
     strncat(command, encoded_measurement, olen);
+    strncat(command, "\n", 1);
+
+    ret = mbedtls_base64_encode((unsigned char*) encoded_nonce, sizeof(encoded_nonce), &olen, (const unsigned char*) nonce, sizeof(nonce));
+    if (ret != 0)
+        return TEE_ERROR_SHORT_BUFFER;
+
+    strncat(command, encoded_nonce, olen);
     strncat(command, "\n\n", 2);
 
     res = execute_command(command, strlen(command), response, sizeof(response), true);
-
 
     if (res == TEE_ERROR_COMMUNICATION) {
         queue ctx;

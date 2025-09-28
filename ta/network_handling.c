@@ -85,12 +85,12 @@ TEE_Result execute_command(const char* command, uint16_t command_length, char* r
     if (use_client_certificate) {
         res = load_private_key_from_storage(&client_key);
         if (res != TEE_SUCCESS) {
-            res = TEE_ERROR_GENERIC;
+            res = TEE_ERROR_BAD_PARAMETERS;
             goto clean_data;
         }
         res = load_client_cert_from_storage(&client_cert);
         if (res != TEE_SUCCESS) {
-            res = TEE_ERROR_GENERIC;
+            res = TEE_ERROR_BAD_PARAMETERS;
             goto clean_data;
         }
     }
@@ -107,7 +107,7 @@ TEE_Result execute_command(const char* command, uint16_t command_length, char* r
     mbedtls_ssl_conf_min_version(&ssl_conf, MBEDTLS_SSL_MAJOR_VERSION_3, MBEDTLS_SSL_MINOR_VERSION_3);
     mbedtls_ssl_conf_max_version(&ssl_conf, MBEDTLS_SSL_MAJOR_VERSION_3, MBEDTLS_SSL_MINOR_VERSION_3);
     if (use_client_certificate && mbedtls_ssl_conf_own_cert(&ssl_conf, &client_cert, &client_key) != 0) {
-        res = TEE_ERROR_ITEM_NOT_FOUND;
+        res = TEE_ERROR_BAD_PARAMETERS;
         goto clean_data;
     }
 
@@ -124,14 +124,14 @@ TEE_Result execute_command(const char* command, uint16_t command_length, char* r
 
     while ((ret = mbedtls_ssl_handshake(&ssl_ctx)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)  {
-            res = TEE_ERROR_BAD_FORMAT;
+            res = TEE_ERROR_COMMUNICATION;
             goto clean;
         }
     }
 
     ret = mbedtls_ssl_write(&ssl_ctx, (const unsigned char*) command, command_length);
     if (ret < 0) {
-        res = TEE_ERROR_BAD_STATE;
+        res = TEE_ERROR_COMMUNICATION;
         goto clean;
     }
 
@@ -141,7 +141,7 @@ TEE_Result execute_command(const char* command, uint16_t command_length, char* r
     while (cumulatively_read < response_buffer_length && !has_complete_command((const char*) response_buffer, response_buffer_length)) {
         ret = mbedtls_ssl_read(&ssl_ctx, (unsigned char*) temp_buffer, 512);
         if (ret < 0) {
-            res = TEE_ERROR_BAD_STATE;
+            res = TEE_ERROR_COMMUNICATION;
             goto clean;
         }
 

@@ -112,7 +112,7 @@ TEE_Result queue_peek(queue* ctx, char* buffer, size_t buffer_size) {
 
 TEE_Result queue_add(queue* ctx, const char* buffer, size_t buffer_size) {
     if (queue_full(ctx))
-        return TEE_ERROR_GENERIC;
+        return TEE_ERROR_OUT_OF_MEMORY;
 
     TEE_Result res;
 
